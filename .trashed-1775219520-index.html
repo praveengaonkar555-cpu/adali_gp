@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#FF6B00">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GP Portal">
+<link rel="manifest" href="manifest.json">
+<title>ग्रुप ग्रामपंचायत आडाळी-फोंडीये — डिजिटल सेवा पोर्टल</title>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+
+<!-- ✅ SUPABASE SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --saffron: #FF6B00;
+  --saffron-light: #FF8C33;
+  --saffron-pale: #FFF3E8;
+  --green: #138808;
+  --green-light: #1AAB09;
+  --green-pale: #E8F8E8;
+  --navy: #1A237E;
+  --navy-light: #283593;
+  --gold: #D4A017;
+  --cream: #FEFAF4;
+  --white: #FFFFFF;
+  --gray-100: #F5F5F5;
+  --gray-200: #E8E8E8;
+  --gray-600: #666;
+  --gray-800: #333;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.16);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Mukta','Noto Sans Devanagari',sans-serif; background: var(--cream); color: var(--gray-800); min-height: 100vh; }
+
+/* HEADER */
+header { background: linear-gradient(135deg, var(--saffron) 0%, #E55A00 40%, var(--navy) 100%); color: white; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-lg); }
+.header-top { display: flex; align-items: center; gap: 14px; padding: 12px 16px; }
+.emblem { width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 0 0 3px var(--gold); flex-shrink: 0; }
+.header-text h1 { font-size: 18px; font-weight: 800; line-height: 1.2; }
+.header-text p { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+.header-badge { margin-left: auto; background: var(--gold); color: var(--navy); font-weight: 700; font-size: 10px; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+nav { display: flex; overflow-x: auto; scrollbar-width: none; background: rgba(0,0,0,0.2); }
+nav::-webkit-scrollbar { display: none; }
+nav button { background: none; border: none; color: rgba(255,255,255,0.8); font-family: 'Mukta',sans-serif; font-size: 12px; font-weight: 600; padding: 9px 14px; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: all 0.2s; flex-shrink: 0; }
+nav button:hover { color: white; background: rgba(255,255,255,0.1); }
+nav button.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* TOAST */
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--navy); color: white; padding: 12px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 9999; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; box-shadow: var(--shadow-lg); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--green); }
+.toast.error { background: #CC0000; }
+
+/* LOADING */
+.loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 9000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+.loading-overlay.show { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--gray-200); border-top-color: var(--saffron); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* MAIN */
+main { max-width: 900px; margin: 0 auto; padding: 16px 14px 80px; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* LOGIN */
+.login-wrap { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-card { background: white; border-radius: var(--radius); padding: 32px 24px; width: 100%; max-width: 380px; box-shadow: var(--shadow-lg); text-align: center; }
+.login-emblem { font-size: 56px; margin-bottom: 12px; }
+.login-card h2 { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+.login-card p { font-size: 13px; color: var(--gray-600); margin-bottom: 24px; }
+.otp-row { display: flex; gap: 8px; }
+.otp-row input { flex: 1; }
+.otp-row button { background: var(--navy); color: white; border: none; padding: 10px 14px; border-radius: var(--radius-sm); font-family: 'Mukta',sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+/* HERO */
+.hero { background: linear-gradient(135deg, var(--navy), var(--navy-light)); color: white; border-radius: var(--radius); padding: 24px 20px; margin-bottom: 20px; position: relative; overflow: hidden; }
+.hero::before { content: '🏛️'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 70px; opacity: 0.1; }
+.hero h2 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.hero p { opacity: 0.85; font-size: 13px; line-height: 1.6; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.hero-stat { background: rgba(255,255,255,0.12); border-radius: var(--radius-sm); padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.15); }
+.hero-stat .num { font-size: 20px; font-weight: 800; color: var(--gold); }
+.hero-stat .lbl { font-size: 10px; opacity: 0.8; margin-top: 2px; }
+
+/* CARD GRID */
+.card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+@media(min-width:600px) { .card-grid { grid-template-columns: repeat(3,1fr); } }
+.service-card { background: white; border-radius: var(--radius); padding: 18px 14px; text-align: center; cursor: pointer; box-shadow: var(--shadow-sm); border: 2px solid transparent; transition: all 0.25s; position: relative; overflow: hidden; }
+.service-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: var(--color, var(--saffron)); }
+.service-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color, var(--saffron)); }
+.service-card .icon { font-size: 32px; margin-bottom: 8px; }
+.service-card .title { font-size: 13px; font-weight: 700; }
+.service-card .sub { font-size: 11px; color: var(--gray-600); margin-top: 3px; }
+
+/* SECTION HEADER */
+.section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.section-header .icon-bg { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.section-header h2 { font-size: 18px; font-weight: 800; color: var(--navy); }
+.section-header p { font-size: 12px; color: var(--gray-600); }
+
+/* FORM */
+.form-card { background: white; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); margin-bottom: 14px; }
+.form-card h3 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px dashed var(--gray-200); }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.form-group label span { color: red; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 13px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-family: 'Mukta',sans-serif; font-size: 14px; background: var(--cream); transition: border-color 0.2s; outline: none; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--saffron); background: white; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius-sm); border: none; font-family: 'Mukta',sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: linear-gradient(135deg, var(--saffron), var(--saffron-light)); color: white; width: 100%; justify-content: center; box-shadow: 0 4px 15px rgba(255,107,0,0.3); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,107,0,0.4); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-green { background: linear-gradient(135deg, var(--green), var(--green-light)); color: white; width: 100%; justify-content: center; }
+.btn-whatsapp { background: #25D366; color: white; border: none; justify-content: center; }
+.btn-outline { background: transparent; color: var(--saffron); border: 2px solid var(--saffron); }
+
+/* DAKHALE */
+.dakhala-item { background: white; border-radius: var(--radius); padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 12px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+.dakhala-item:hover { border-color: var(--saffron); transform: translateX(3px); }
+.dakhala-icon { width: 44px; height: 44px; border-radius: var(--radius-sm); background: var(--saffron-pale); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.dakhala-info { flex: 1; }
+.dakhala-info h4 { font-size: 14px; font-weight: 700; color: var(--navy); }
+.dakhala-info p { font-size: 11px; color: var(--gray-600); margin-top: 2px; }
+.dakhala-info .fee { display: inline-block; background: var(--saffron-pale); color: var(--saffron); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-top: 3px; }
+.dakhala-arrow { color: var(--saffron); font-size: 18px; }
+
+/* TAX */
+.tax-card { background: white; border-radius: var(--radius); padding: 18px; margin-bottom: 12px; box-shadow: var(--shadow-sm); border-left: 5px solid var(--color, var(--saffron)); }
+.tax-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.tax-card h4 { font-size: 14px; font-weight: 700; color: var(--navy); }
+.tax-card .khate { font-size: 11px; color: var(--gray-600); margin-top: 2px; }
+.tax-status { padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+.status-due { background: #FFE5E5; color: #CC0000; }
+.status-paid { background: var(--green-pale); color: var(--green); }
+.tax-amount { font-size: 20px; font-weight: 800; }
+.tax-amount span { font-size: 13px; font-weight: 400; color: var(--gray-600); }
+.tax-details { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 10px 0; }
+.tax-detail { background: var(--gray-100); padding: 7px 10px; border-radius: 8px; }
+.tax-detail .key { font-size: 10px; color: var(--gray-600); }
+.tax-detail .val { font-size: 12px; font-weight: 700; margin-top: 2px; }
+
+/* NOTICE */
+.notice-card { background: white; border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); border-top: 4px solid var(--color, var(--navy)); }
+.notice-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.notice-tag { padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; background: var(--saffron-pale); color: var(--saffron); white-space: nowrap; }
+.notice-card h4 { font-size: 14px; font-weight: 700; color: var(--navy); flex: 1; }
+.notice-card p { font-size: 12px; color: var(--gray-600); line-height: 1.6; }
+.notice-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--gray-200); }
+.notice-date { font-size: 11px; color: var(--gray-600); }
+.share-btn { display: flex; align-items: center; gap: 5px; background: #25D366; color: white; border: none; padding: 5px 12px; border-radius: 20px; font-family: 'Mukta',sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; padding: 16px; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
+.modal-overlay.open { display: flex; }
+.modal { background: white; border-radius: var(--radius) var(--radius) 0 0; padding: 24px 20px 32px; width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; position: relative; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-close { position: absolute; top: 14px; right: 14px; background: var(--gray-200); border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.modal h3 { font-size: 18px; font-weight: 800; color: var(--navy); margin-bottom: 4px; padding-right: 36px; }
+.modal .subtitle { font-size: 12px; color: var(--gray-600); margin-bottom: 18px; }
+
+/* SUCCESS */
+.success-box { text-align: center; padding: 16px; }
+.success-icon { font-size: 52px; margin-bottom: 10px; }
+.success-box h3 { font-size: 20px; font-weight: 800; color: var(--green); margin-bottom: 6px; }
+.success-box p { color: var(--gray-600); font-size: 13px; }
+.ref-box { background: var(--green-pale); border-radius: var(--radius-sm); padding: 14px; margin: 14px 0; text-align: center; }
+.ref-box .ref-num { font-size: 22px; font-weight: 800; color: var(--green); letter-spacing: 2px; }
+.ref-box p { font-size: 11px; color: var(--gray-600); }
+
+/* RECEIPT */
+.receipt { border: 2px dashed var(--gray-200); border-radius: var(--radius); padding: 18px; margin: 14px 0; background: var(--cream); }
+.receipt-header { text-align: center; padding-bottom: 12px; border-bottom: 1px dashed var(--gray-200); margin-bottom: 12px; }
+.receipt-header h4 { font-size: 15px; color: var(--navy); font-weight: 800; }
+.receipt-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 7px; }
+.receipt-row .key { color: var(--gray-600); }
+.receipt-row .val { font-weight: 700; }
+.receipt-total { border-top: 2px solid var(--navy); margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: var(--navy); }
+
+/* TRACKER */
+.tracker { background: white; border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow-sm); margin-bottom: 14px; }
+.track-steps { margin-top: 14px; }
+.track-step { display: flex; gap: 12px; padding-bottom: 18px; position: relative; }
+.track-step:not(:last-child)::before { content: ''; position: absolute; left: 15px; top: 30px; width: 2px; height: calc(100% - 10px); background: var(--gray-200); }
+.track-step.done::before { background: var(--green); }
+.step-dot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; border: 2px solid var(--gray-200); background: white; }
+.track-step.done .step-dot { background: var(--green); border-color: var(--green); color: white; }
+.track-step.current .step-dot { background: var(--saffron); border-color: var(--saffron); color: white; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,107,0,0.4)} 50%{box-shadow:0 0 0 8px rgba(255,107,0,0)} }
+.step-info h5 { font-size: 13px; font-weight: 700; }
+.step-info p { font-size: 11px; color: var(--gray-600); margin-top: 2px; }
+
+/* ALERT */
+.alert { padding: 11px 14px; border-radius: var(--radius-sm); margin-bottom: 12px; display: flex; gap: 9px; align-items: flex-start; }
+.alert-info { background: #E3F2FD; border-left: 4px solid #1976D2; color: #0D47A1; }
+.alert-warn { background: #FFF3CD; border-left: 4px solid #F0A500; color: #856404; }
+.alert .alert-icon { font-size: 16px; flex-shrink: 0; }
+.alert-text { font-size: 12px; line-height: 1.5; }
+
+/* PROFILE */
+.profile-card { background: linear-gradient(135deg, var(--navy), var(--navy-light)); color: white; border-radius: var(--radius); padding: 22px; text-align: center; margin-bottom: 18px; }
+.avatar { width: 64px; height: 64px; background: var(--saffron); border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 3px solid var(--gold); }
+.profile-card h3 { font-size: 18px; font-weight: 700; }
+.profile-card p { opacity: 0.8; font-size: 12px; margin-top: 3px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.info-item { background: rgba(255,255,255,0.12); border-radius: var(--radius-sm); padding: 9px 12px; text-align: left; }
+.info-item .k { font-size: 10px; opacity: 0.7; }
+.info-item .v { font-size: 13px; font-weight: 700; margin-top: 2px; }
+
+/* BOTTOM NAV */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 2px solid var(--gray-200); display: flex; z-index: 50; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
+.bottom-nav button { flex: 1; background: none; border: none; padding: 7px 4px 9px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: 'Mukta',sans-serif; font-size: 9px; color: var(--gray-600); transition: all 0.2s; }
+.bottom-nav button.active { color: var(--saffron); }
+.bottom-nav button .nav-icon { font-size: 20px; }
+.bottom-nav button.active .nav-icon { transform: scale(1.15); }
+
+/* ADMIN */
+.admin-header { background: var(--navy); color: white; padding: 14px 16px; border-radius: var(--radius); margin-bottom: 16px; }
+.admin-header h3 { font-size: 16px; font-weight: 800; }
+.admin-header p { font-size: 12px; opacity: 0.8; margin-top: 3px; }
+.admin-card { background: white; border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+.admin-card h4 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+.app-list { list-style: none; }
+.app-list li { padding: 12px; border-bottom: 1px solid var(--gray-200); display: flex; gap: 10px; align-items: flex-start; }
+.app-list li:last-child { border-bottom: none; }
+.app-badge { padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.badge-pending { background: #FFF3CD; color: #856404; }
+.badge-approved { background: var(--green-pale); color: var(--green); }
+.badge-rejected { background: #FFE5E5; color: #CC0000; }
+.app-actions { display: flex; gap: 6px; margin-top: 6px; }
+.app-actions button { padding: 4px 10px; border-radius: 20px; border: none; font-family: 'Mukta',sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-approve { background: var(--green-pale); color: var(--green); }
+.btn-reject { background: #FFE5E5; color: #CC0000; }
+
+/* CHIPS */
+.chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 2px solid var(--gray-200); background: white; color: var(--gray-600); }
+.chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+.divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: var(--gray-600); font-size: 12px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
+.fee-summary { background: var(--saffron-pale); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px; }
+.fee-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+.fee-total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; border-top: 1px solid var(--saffron); margin-top: 8px; padding-top: 8px; color: var(--saffron); }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p style="font-size:14px;color:var(--gray-600)">लोड होत आहे...</p>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ========= LOGIN SCREEN ========= -->
+<div id="loginScreen">
+  <div style="background:linear-gradient(135deg,var(--saffron),var(--navy));padding:20px;text-align:center;color:white">
+    <div style="font-size:48px;margin-bottom:8px">🏛️</div>
+    <h1 style="font-size:20px;font-weight:800">ग्रुप ग्रामपंचायत आडाळी-फोंडीये</h1>
+    <p style="font-size:12px;opacity:0.85;margin-top:4px">ता. दोडामार्ग • जि. सिंधुदुर्ग • महाराष्ट्र</p>
+  </div>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-emblem">📱</div>
+      <h2>लॉगिन करा</h2>
+      <p>मोबाईल नंबरने OTP द्वारे सुरक्षित लॉगिन</p>
+
+      <div id="loginStep1">
+        <div class="form-group">
+          <label>मोबाईल नंबर <span>*</span></label>
+          <input type="tel" id="loginPhone" placeholder="+91 XXXXX XXXXX" maxlength="13">
+        </div>
+        <button class="btn btn-primary" onclick="sendOTP()">📲 OTP पाठवा</button>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200)">
+          <button style="background:none;border:none;color:var(--navy);font-family:'Mukta',sans-serif;font-size:13px;font-weight:700;cursor:pointer" onclick="adminLogin()">🔐 ग्रामसेवक / Admin Login</button>
+        </div>
+      </div>
+
+      <div id="loginStep2" style="display:none">
+        <div class="alert alert-info" style="text-align:left">
+          <span class="alert-icon">ℹ️</span>
+          <div class="alert-text">OTP <strong id="otpDisplay"></strong> वर पाठवला आहे</div>
+        </div>
+        <div class="form-group">
+          <label>OTP टाका <span>*</span></label>
+          <input type="number" id="otpInput" placeholder="6 अंकी OTP" maxlength="6">
+        </div>
+        <button class="btn btn-primary" onclick="verifyOTP()">✅ OTP Verify करा</button>
+        <button style="background:none;border:none;color:var(--saffron);font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;display:block;width:100%" onclick="showStep1()">← मागे जा</button>
+      </div>
+
+      <div id="loginStep3" style="display:none">
+        <h3 style="font-size:16px;color:var(--navy);margin-bottom:14px">प्रोफाईल पूर्ण करा</h3>
+        <div class="form-group">
+          <label>पूर्ण नाव <span>*</span></label>
+          <input type="text" id="regName" placeholder="मराठीत नाव टाका">
+        </div>
+        <div class="form-group">
+          <label>घर क्रमांक / सर्वे क्र. <span>*</span></label>
+          <input type="text" id="regGharNo" placeholder="उदा. 123/A">
+        </div>
+        <div class="form-group">
+          <label>आधार क्रमांक</label>
+          <input type="text" id="regAadhar" placeholder="12 अंकी" maxlength="12">
+        </div>
+        <button class="btn btn-primary" onclick="completeRegistration()">✅ नोंदणी पूर्ण करा</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========= MAIN APP ========= -->
+<div id="mainApp" style="display:none">
+
+<header>
+  <div class="header-top">
+    <div class="emblem">🏛️</div>
+    <div class="header-text">
+      <h1>ग्रु. ग्रा.पं. आडाळी-फोंडीये</h1>
+      <p id="headerUser">लोड होत आहे...</p>
+    </div>
+    <div class="header-badge">🟢 ऑनलाईन</div>
+  </div>
+  <nav>
+    <button class="active" onclick="showSection('home')">🏠 मुखपृष्ठ</button>
+    <button onclick="showSection('dakhale')">📄 दाखले</button>
+    <button onclick="showSection('kar')">💰 कर</button>
+    <button onclick="showSection('notice')">📢 नोटीसा</button>
+    <button onclick="showSection('track')">🔍 स्थिती</button>
+    <button onclick="showSection('profile')">👤 खाते</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- HOME -->
+  <div id="home" class="section active">
+    <div class="hero">
+      <h2>स्वागत आहे! 🙏</h2>
+      <p>ग्रुप ग्रामपंचायत आडाळी-फोंडीये — घरबसल्या सर्व सेवा ऑनलाईन उपलब्ध आहेत.</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="num" id="statCitizens">—</div><div class="lbl">नोंदणीकृत</div></div>
+        <div class="hero-stat"><div class="num" id="statApplications">—</div><div class="lbl">यावर्षी अर्ज</div></div>
+        <div class="hero-stat"><div class="num" id="statPayments">—</div><div class="lbl">भरणा झाले</div></div>
+      </div>
+    </div>
+    <div class="alert alert-info">
+      <span class="alert-icon">💡</span>
+      <div class="alert-text">दाखला तयार झाल्यावर <strong>WhatsApp</strong> वर सूचना मिळेल!</div>
+    </div>
+    <div class="section-header">
+      <div class="icon-bg" style="background:#FFF3E8">🌐</div>
+      <div><h2>आमच्या सेवा</h2><p>एका क्लिकवर सर्व सुविधा</p></div>
+    </div>
+    <div class="card-grid">
+      <div class="service-card" style="--color:var(--saffron)" onclick="showSection('dakhale')"><div class="icon">📜</div><div class="title">दाखले</div><div class="sub">अर्ज ऑनलाईन</div></div>
+      <div class="service-card" style="--color:var(--green)" onclick="showSection('kar')"><div class="icon">💳</div><div class="title">कर भरणा</div><div class="sub">पावती मिळवा</div></div>
+      <div class="service-card" style="--color:var(--navy)" onclick="showSection('notice')"><div class="icon">📢</div><div class="title">नोटीसा</div><div class="sub">ताज्या सूचना</div></div>
+      <div class="service-card" style="--color:#9C27B0" onclick="showSection('track')"><div class="icon">🔍</div><div class="title">स्थिती</div><div class="sub">अर्जाची प्रगती</div></div>
+      <div class="service-card" style="--color:#E91E63" onclick="showSection('profile')"><div class="icon">👤</div><div class="title">माझा खाता</div><div class="sub">माहिती व इतिहास</div></div>
+      <div class="service-card" style="--color:#00BCD4" onclick="showSection('dakhale')"><div class="icon">🏠</div><div class="title">मालमत्ता</div><div class="sub">नोंदणी</div></div>
+    </div>
+  </div>
+
+  <!-- DAKHALE -->
+  <div id="dakhale" class="section">
+    <div class="section-header">
+      <div class="icon-bg" style="background:var(--saffron-pale)">📄</div>
+      <div><h2>ऑनलाईन दाखले</h2><p>घरबसल्या दाखले मागवा</p></div>
+    </div>
+    <div class="alert alert-info">
+      <span class="alert-icon">💡</span>
+      <div class="alert-text">दाखला तयार झाल्यावर WhatsApp वर सूचना येईल. 2-5 कामकाजी दिवस लागतात.</div>
+    </div>
+    <div id="dakhalaList">
+      <!-- Dynamically filled -->
+    </div>
+  </div>
+
+  <!-- KAR -->
+  <div id="kar" class="section">
+    <div class="section-header">
+      <div class="icon-bg" style="background:var(--green-pale)">💰</div>
+      <div><h2>ऑनलाईन कर भरणा</h2><p>सुरक्षित व झटपट पेमेंट</p></div>
+    </div>
+    <div class="alert alert-warn">
+      <span class="alert-icon">⚠️</span>
+      <div class="alert-text">थकबाकीवर दर महिन्यास <strong>2% व्याज</strong> आकारले जाते.</div>
+    </div>
+    <div id="karList">
+      <!-- Dynamically filled -->
+    </div>
+  </div>
+
+  <!-- NOTICE -->
+  <div id="notice" class="section">
+    <div class="section-header">
+      <div class="icon-bg" style="background:#E3F2FD">📢</div>
+      <div><h2>शासकीय नोटीसा</h2><p>अधिकृत सूचना</p></div>
+    </div>
+    <div class="chips">
+      <div class="chip active" onclick="filterNotice('all',this)">सर्व</div>
+      <div class="chip" onclick="filterNotice('सभा',this)">सभा</div>
+      <div class="chip" onclick="filterNotice('योजना',this)">योजना</div>
+      <div class="chip" onclick="filterNotice('निविदा',this)">निविदा</div>
+      <div class="chip" onclick="filterNotice('आरोग्य',this)">आरोग्य</div>
+    </div>
+    <div id="noticeList">
+      <!-- Dynamically filled -->
+    </div>
+  </div>
+
+  <!-- TRACK -->
+  <div id="track" class="section">
+    <div class="section-header">
+      <div class="icon-bg" style="background:#F3E5F5">🔍</div>
+      <div><h2>अर्जाची स्थिती</h2><p>प्रगती तपासा</p></div>
+    </div>
+    <div class="form-card">
+      <h3>🔎 स्थिती तपासा</h3>
+      <div class="form-group">
+        <label>संदर्भ क्रमांक <span>*</span></label>
+        <input type="text" id="trackRef" placeholder="उदा. GP-2025-00234">
+      </div>
+      <button class="btn btn-primary" onclick="trackApplication()">🔍 स्थिती तपासा</button>
+    </div>
+    <div id="trackResult"></div>
+    <div class="section-header" style="margin-top:8px">
+      <div class="icon-bg" style="background:var(--saffron-pale)">📋</div>
+      <div><h2>माझे अर्ज</h2></div>
+    </div>
+    <div id="myApplications"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="profile" class="section">
+    <div class="profile-card">
+      <div class="avatar" id="profileAvatar">👤</div>
+      <h3 id="profileName">लोड होत आहे...</h3>
+      <p id="profilePhone"></p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">घर क्र.</div><div class="v" id="profileGhar">—</div></div>
+        <div class="info-item"><div class="k">आधार</div><div class="v" id="profileAadhar">—</div></div>
+        <div class="info-item"><div class="k">नोंदणी</div><div class="v" id="profileDate">—</div></div>
+        <div class="info-item"><div class="k">प्रकार</div><div class="v">ग्रामस्थ</div></div>
+      </div>
+    </div>
+    <div class="section-header">
+      <div class="icon-bg" style="background:#FFF3E8">📊</div>
+      <div><h2>माझा इतिहास</h2></div>
+    </div>
+    <div id="profileHistory"></div>
+    <div class="form-card" style="margin-top:14px">
+      <h3>⚙️ सेटिंग्ज</h3>
+      <div class="form-group">
+        <label>WhatsApp नोटिफिकेशन</label>
+        <select><option>चालू - सर्व सूचना</option><option>चालू - फक्त महत्त्वाच्या</option><option>बंद</option></select>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 जतन करा</button>
+      <button class="btn btn-outline" style="width:100%;margin-top:8px;justify-content:center" onclick="logout()">🚪 लॉगआउट</button>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="admin" class="section">
+    <div class="admin-header">
+      <h3>🔐 Admin Panel — ग्रामसेवक</h3>
+      <p>ग्रुप ग्रामपंचायत आडाळी-फोंडीये | ता. दोडामार्ग • जि. सिंधुदुर्ग</p>
+    </div>
+    <div class="card-grid" style="margin-bottom:16px">
+      <div class="service-card" style="--color:var(--saffron)" onclick="loadAdminApplications()"><div class="icon">📋</div><div class="title">अर्ज</div><div class="sub" id="pendingCount">लोड होत आहे</div></div>
+      <div class="service-card" style="--color:var(--navy)" onclick="showAdminNoticeForm()"><div class="icon">📢</div><div class="title">नोटीस</div><div class="sub">नवीन प्रकाशित</div></div>
+      <div class="service-card" style="--color:var(--green)" onclick="loadAdminPayments()"><div class="icon">💰</div><div class="title">भरणा</div><div class="sub">पेमेंट रेकॉर्ड</div></div>
+      <div class="service-card" style="--color:#9C27B0" onclick="loadAdminCitizens()"><div class="icon">👥</div><div class="title">नागरिक</div><div class="sub">नोंदणी</div></div>
+    </div>
+    <div id="adminContent"></div>
+  </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="active" onclick="showSection('home');setActiveNav(this)"><span class="nav-icon">🏠</span>मुखपृष्ठ</button>
+  <button onclick="showSection('dakhale');setActiveNav(this)"><span class="nav-icon">📄</span>दाखले</button>
+  <button onclick="showSection('kar');setActiveNav(this)"><span class="nav-icon">💰</span>कर</button>
+  <button onclick="showSection('notice');setActiveNav(this)"><span class="nav-icon">📢</span>नोटीसा</button>
+  <button onclick="showSection('profile');setActiveNav(this)"><span class="nav-icon">👤</span>खाते</button>
+</div>
+
+</div><!-- end mainApp -->
+
+<!-- ====== MODALS ====== -->
+<!-- Dakhala Form Modal -->
+<div class="modal-overlay" id="dakhalaModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('dakhalaModal')">✕</button>
+    <h3 id="dakhalaModalTitle">दाखल्यासाठी अर्ज</h3>
+    <p class="subtitle">सर्व माहिती अचूक भरा</p>
+    <div class="form-group">
+      <label>अर्जदाराचे पूर्ण नाव <span>*</span></label>
+      <input type="text" id="appName" placeholder="मराठीत नाव">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>मोबाईल <span>*</span></label>
+        <input type="tel" id="appPhone" placeholder="10 अंक">
+      </div>
+      <div class="form-group">
+        <label>आधार क्र. <span>*</span></label>
+        <input type="text" id="appAadhar" placeholder="12 अंक" maxlength="12">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>पत्ता <span>*</span></label>
+      <textarea id="appAddress" rows="2" placeholder="घर क्र., वस्ती, गाव..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>दाखला कशासाठी <span>*</span></label>
+        <select id="appPurpose">
+          <option>शाळा प्रवेश</option>
+          <option>सरकारी नोकरी</option>
+          <option>बँक खाते</option>
+          <option>रेशन कार्ड</option>
+          <option>शिष्यवृत्ती</option>
+          <option>इतर</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>प्रती संख्या</label>
+        <select id="appCopies">
+          <option>1</option><option>2</option><option>3</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>WhatsApp नंबर</label>
+      <input type="tel" id="appWhatsapp" placeholder="दाखला पाठवण्यासाठी">
+    </div>
+    <div class="fee-summary">
+      <div class="fee-row"><span>दाखला शुल्क</span><strong id="feeAmount">₹20</strong></div>
+      <div class="fee-row"><span>सेवा शुल्क</span><strong>₹0</strong></div>
+      <div class="fee-total"><span>एकूण</span><strong id="feeTotalAmount">₹20</strong></div>
+    </div>
+    <button class="btn btn-primary" id="submitDakhalaBtn" onclick="submitDakhalaApplication()">✅ अर्ज सादर करा</button>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
+    <h3 id="paymentTitle">कर भरणा</h3>
+    <p class="subtitle">सुरक्षित ऑनलाईन पेमेंट</p>
+    <div style="background:var(--green-pale);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;text-align:center">
+      <div style="font-size:12px;color:var(--gray-600)">भरावयाची रक्कम</div>
+      <div style="font-size:30px;font-weight:800;color:var(--green)" id="payAmount">₹0</div>
+    </div>
+    <div class="form-group">
+      <label>पेमेंट पद्धत <span>*</span></label>
+      <select id="payMethod">
+        <option>📱 UPI - GPay / PhonePe / Paytm</option>
+        <option>🏦 नेट बँकिंग</option>
+        <option>💳 डेबिट कार्ड</option>
+      </select>
+    </div>
+    <div class="form-group" id="upiField">
+      <label>UPI आयडी</label>
+      <input type="text" id="upiId" placeholder="yourname@upi किंवा 10 अंकी नंबर">
+    </div>
+    <div class="alert alert-info">
+      <span class="alert-icon">🔒</span>
+      <div class="alert-text">पेमेंट झाल्यावर <strong>लगेच पावती</strong> मिळेल व WhatsApp वर पाठवली जाईल.</div>
+    </div>
+    <button class="btn btn-green" id="payBtn" onclick="processPayment()">💳 पेमेंट करा</button>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('successModal')">✕</button>
+    <div class="success-box" id="successContent"></div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('receiptModal')">✕</button>
+    <h3>🧾 अधिकृत पावती</h3>
+    <p class="subtitle">ग्रामपंचायत पेमेंट पावती</p>
+    <div class="receipt" id="receiptContent"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;font-size:12px" onclick="printReceipt()">🖨️ Print</button>
+      <button class="btn btn-whatsapp" style="flex:1;border:none;font-size:12px" id="receiptWhatsApp">📱 WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Notice Form Modal -->
+<div class="modal-overlay" id="adminNoticeModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('adminNoticeModal')">✕</button>
+    <h3>📢 नवीन नोटीस प्रकाशित करा</h3>
+    <p class="subtitle">नोटीस सर्व नागरिकांना दिसेल</p>
+    <div class="form-group">
+      <label>शीर्षक <span>*</span></label>
+      <input type="text" id="noticeTitle" placeholder="नोटीसचे शीर्षक">
+    </div>
+    <div class="form-group">
+      <label>श्रेणी <span>*</span></label>
+      <select id="noticeCategory">
+        <option>सभा</option><option>योजना</option><option>निविदा</option><option>आरोग्य</option><option>सामान्य</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>संपूर्ण माहिती <span>*</span></label>
+      <textarea id="noticeContent" rows="4" placeholder="नोटीसची संपूर्ण माहिती..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>WhatsApp Broadcast</label>
+      <select id="noticeWhatsapp">
+        <option value="yes">होय - सर्व नागरिकांना पाठवा</option>
+        <option value="no">नाही</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="publishNotice()">📢 नोटीस प्रकाशित करा</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// ✅ SUPABASE CONFIGURATION
+// येथे तुमच्या Supabase project चे URL आणि Key टाका
+// ============================================================
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';        // 👈 बदला
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 👈 बदला
+// ============================================================
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// App State
+let currentUser = null;
+let isAdmin = false;
+let currentDakhalaType = '';
+let currentDakhalaFee = 20;
+let currentPaymentType = '';
+let currentPaymentAmount = 0;
+let currentPaymentTaxId = null;
+let lastReceiptData = null;
+let allNotices = [];
+
+// Demo mode (जेव्हा Supabase configure केलेला नाही)
+const DEMO_MODE = (SUPABASE_URL === 'YOUR_SUPABASE_URL');
+
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+function showLoading() { document.getElementById('loadingOverlay').classList.add('show'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  const map = { home:0, dakhale:1, kar:2, notice:3, track:4, profile:5, admin:5 };
+  const navBtns = document.querySelectorAll('nav button');
+  if (map[id] !== undefined && navBtns[map[id]]) navBtns[map[id]].classList.add('active');
+  window.scrollTo(0, 0);
+  if (id === 'notice') loadNotices();
+  if (id === 'kar') loadKar();
+  if (id === 'track') loadMyApplications();
+  if (id === 'profile') loadProfile();
+  if (id === 'home') loadStats();
+  if (id === 'dakhale') renderDakhalaList();
+}
+
+function setActiveNav(btn) {
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function formatDate(str) {
+  if (!str) return '—';
+  const d = new Date(str);
+  return d.toLocaleDateString('mr-IN', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function generateRef() {
+  return 'GP-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
+}
+
+function shareWhatsApp(msg) {
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ============================================================
+// AUTH / LOGIN
+// ============================================================
+let otpCode = '';
+let loginPhoneNum = '';
+
+function sendOTP() {
+  const ph = document.getElementById('loginPhone').value.replace(/\s/g, '');
+  if (!ph || ph.length < 10) { showToast('योग्य मोबाईल नंबर टाका', 'error'); return; }
+  loginPhoneNum = ph;
+  otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  // In real app: send via SMS API
+  document.getElementById('otpDisplay').textContent = ph;
+  document.getElementById('loginStep1').style.display = 'none';
+  document.getElementById('loginStep2').style.display = 'block';
+  showToast('OTP: ' + otpCode + ' (Demo)', 'success');
+}
+
+function showStep1() {
+  document.getElementById('loginStep1').style.display = 'block';
+  document.getElementById('loginStep2').style.display = 'none';
+}
+
+async function verifyOTP() {
+  const entered = document.getElementById('otpInput').value.trim();
+  if (entered !== otpCode) { showToast('चुकीचा OTP', 'error'); return; }
+
+  if (DEMO_MODE) {
+    // Demo mode: bypass database
+    currentUser = { id: 'demo-user', phone: loginPhoneNum, name: 'राम पाटील', ghar_no: '123/A', aadhar: '****1234', created_at: new Date().toISOString() };
+    startApp();
+    return;
+  }
+
+  showLoading();
+  try {
+    const { data, error } = await db.from('citizens').select('*').eq('phone', loginPhoneNum).single();
+    hideLoading();
+    if (data) {
+      currentUser = data;
+      startApp();
+    } else {
+      // New user - show registration
+      document.getElementById('loginStep2').style.display = 'none';
+      document.getElementById('loginStep3').style.display = 'block';
+      document.getElementById('regName').value = '';
+    }
+  } catch (e) {
+    hideLoading();
+    showToast('कनेक्शन नाही, Demo mode', 'error');
+    currentUser = { id: 'demo-user', phone: loginPhoneNum, name: 'राम पाटील', ghar_no: '123/A', aadhar: '****1234', created_at: new Date().toISOString() };
+    startApp();
+  }
+}
+
+async function completeRegistration() {
+  const name = document.getElementById('regName').value.trim();
+  const ghar = document.getElementById('regGharNo').value.trim();
+  const aadhar = document.getElementById('regAadhar').value.trim();
+  if (!name || !ghar) { showToast('नाव व घर क्र. आवश्यक आहे', 'error'); return; }
+  showLoading();
+  try {
+    const { data, error } = await db.from('citizens').insert([{
+      phone: loginPhoneNum, name, ghar_no: ghar, aadhar: aadhar || null
+    }]).select().single();
+    hideLoading();
+    if (data) { currentUser = data; startApp(); }
+    else { showToast('नोंदणी झाली नाही: ' + (error?.message || ''), 'error'); }
+  } catch (e) {
+    hideLoading();
+    currentUser = { id: 'new-user', phone: loginPhoneNum, name, ghar_no: ghar, aadhar, created_at: new Date().toISOString() };
+    startApp();
+  }
+}
+
+function adminLogin() {
+  const pass = prompt('Admin Password टाका:');
+  if (pass === 'AADALI@123') {
+    isAdmin = true;
+    currentUser = { id: 'admin', phone: '9999999999', name: 'ग्रामसेवक (Admin)', ghar_no: 'GP Office', created_at: new Date().toISOString() };
+    startApp();
+    setTimeout(() => {
+      // Add admin to nav
+      const nav = document.querySelector('nav');
+      const btn = document.createElement('button');
+      btn.textContent = '🔐 Admin';
+      btn.onclick = () => { showSection('admin'); loadAdminApplications(); };
+      nav.appendChild(btn);
+    }, 100);
+  } else {
+    showToast('चुकीचा Password', 'error');
+  }
+}
+
+function startApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('headerUser').textContent = currentUser.name + ' • ' + currentUser.ghar_no;
+  loadStats();
+  renderDakhalaList();
+}
+
+function logout() {
+  if (confirm('लॉगआउट करायचे का?')) {
+    currentUser = null; isAdmin = false;
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('loginStep1').style.display = 'block';
+    document.getElementById('loginStep2').style.display = 'none';
+    document.getElementById('loginStep3').style.display = 'none';
+    document.getElementById('loginPhone').value = '';
+    document.getElementById('otpInput').value = '';
+  }
+}
+
+// ============================================================
+// HOME STATS
+// ============================================================
+async function loadStats() {
+  if (DEMO_MODE) {
+    document.getElementById('statCitizens').textContent = '247';
+    document.getElementById('statApplications').textContent = '38';
+    document.getElementById('statPayments').textContent = '₹1.2L';
+    return;
+  }
+  try {
+    const [c, a, p] = await Promise.all([
+      db.from('citizens').select('id', { count: 'exact', head: true }),
+      db.from('applications').select('id', { count: 'exact', head: true }),
+      db.from('payments').select('amount').eq('status', 'paid')
+    ]);
+    document.getElementById('statCitizens').textContent = c.count || '—';
+    document.getElementById('statApplications').textContent = a.count || '—';
+    const total = (p.data || []).reduce((s, r) => s + (r.amount || 0), 0);
+    document.getElementById('statPayments').textContent = total >= 1000 ? '₹' + (total/1000).toFixed(1) + 'K' : '₹' + total;
+  } catch (e) {}
+}
+
+// ============================================================
+// DAKHALE
+// ============================================================
+const dakhalaTypes = [
+  { icon:'🏠', name:'रहिवास दाखला', desc:'गावात राहण्याचा पुरावा', fee:20, days:'2-3 दिवस' },
+  { icon:'👶', name:'जन्म दाखला', desc:'जन्माची नोंदणी व प्रमाणपत्र', fee:30, days:'3-5 दिवस' },
+  { icon:'📋', name:'मृत्यू दाखला', desc:'मृत्यूची नोंदणी', fee:20, days:'2-3 दिवस' },
+  { icon:'💵', name:'उत्पन्नाचा दाखला', desc:'वार्षिक उत्पन्नाचे प्रमाणपत्र', fee:25, days:'3-4 दिवस' },
+  { icon:'✅', name:'हयातीचा दाखला', desc:'जीवित असल्याचे प्रमाणपत्र', fee:15, days:'1-2 दिवस' },
+  { icon:'💒', name:'विवाह नोंदणी', desc:'विवाहाचे अधिकृत प्रमाणपत्र', fee:50, days:'5-7 दिवस' },
+  { icon:'🏡', name:'मालमत्ता उतारा', desc:'मालमत्तेचा तपशील', fee:30, days:'2-3 दिवस' },
+  { icon:'📃', name:'जातीचा दाखला (शिफारस)', desc:'जात शिफारस पत्र', fee:0, days:'2-4 दिवस' },
+];
+
+function renderDakhalaList() {
+  const div = document.getElementById('dakhalaList');
+  div.innerHTML = dakhalaTypes.map(d => `
+    <div class="dakhala-item" onclick="openDakhalaForm('${d.name}', ${d.fee})">
+      <div class="dakhala-icon">${d.icon}</div>
+      <div class="dakhala-info">
+        <h4>${d.name}</h4>
+        <p>${d.desc}</p>
+        <span class="fee">${d.fee > 0 ? '₹' + d.fee : 'मोफत'} | ${d.days}</span>
+      </div>
+      <span class="dakhala-arrow">›</span>
+    </div>`).join('');
+}
+
+function openDakhalaForm(type, fee) {
+  currentDakhalaType = type;
+  currentDakhalaFee = fee;
+  document.getElementById('dakhalaModalTitle').textContent = type + ' — अर्ज';
+  document.getElementById('feeAmount').textContent = fee > 0 ? '₹' + fee : 'मोफत';
+  document.getElementById('feeTotalAmount').textContent = fee > 0 ? '₹' + fee : 'मोफत';
+  if (currentUser) {
+    document.getElementById('appName').value = currentUser.name || '';
+    document.getElementById('appPhone').value = currentUser.phone || '';
+    document.getElementById('appAadhar').value = currentUser.aadhar || '';
+    document.getElementById('appWhatsapp').value = currentUser.phone || '';
+  }
+  openModal('dakhalaModal');
+}
+
+async function submitDakhalaApplication() {
+  const name = document.getElementById('appName').value.trim();
+  const phone = document.getElementById('appPhone').value.trim();
+  const aadhar = document.getElementById('appAadhar').value.trim();
+  const address = document.getElementById('appAddress').value.trim();
+  const purpose = document.getElementById('appPurpose').value;
+  const copies = document.getElementById('appCopies').value;
+  const whatsapp = document.getElementById('appWhatsapp').value.trim();
+  if (!name || !phone || !address) { showToast('सर्व * माहिती भरा', 'error'); return; }
+
+  const ref = generateRef();
+  const btn = document.getElementById('submitDakhalaBtn');
+  btn.disabled = true;
+  btn.textContent = 'सादर होत आहे...';
+
+  const appData = {
+    ref_no: ref, citizen_id: currentUser?.id, citizen_name: name,
+    phone, aadhar, address, purpose, copies: parseInt(copies),
+    whatsapp_no: whatsapp, type: currentDakhalaType,
+    fee: currentDakhalaFee, status: 'pending',
+    created_at: new Date().toISOString()
+  };
+
+  if (!DEMO_MODE) {
+    try {
+      await db.from('applications').insert([appData]);
+    } catch (e) { console.log('DB insert failed, demo mode'); }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✅ अर्ज सादर करा';
+  closeModal('dakhalaModal');
+
+  document.getElementById('successContent').innerHTML = `
+    <div class="success-icon">✅</div>
+    <h3>अर्ज यशस्वीरित्या सादर!</h3>
+    <p>तुमचा <strong>${currentDakhalaType}</strong> अर्ज नोंदवला गेला.</p>
+    <div class="ref-box">
+      <p style="font-size:11px;color:var(--gray-600);margin-bottom:4px">संदर्भ क्रमांक</p>
+      <div class="ref-num">${ref}</div>
+      <p style="font-size:11px;color:var(--gray-600);margin-top:4px">हा नंबर जपून ठेवा</p>
+    </div>
+    <p style="font-size:12px;color:var(--gray-600)">📱 दाखला तयार झाल्यावर WhatsApp वर सूचना मिळेल.</p>
+    <button class="btn btn-whatsapp" style="margin-top:14px;border:none;width:100%;justify-content:center" onclick="shareWhatsApp('✅ ${currentDakhalaType} अर्ज यशस्वी!\\n\\nसंदर्भ क्र.: ${ref}\\nग्रुप ग्रामपंचायत आडाळी-फोंडीये\\n\\nदाखला तयार झाल्यावर सूचना मिळेल.')">📱 WhatsApp वर शेअर</button>
+  `;
+  openModal('successModal');
+  showToast('अर्ज सादर झाला! ' + ref, 'success');
+}
+
+// ============================================================
+// KAR (TAXES)
+// ============================================================
+const demoTaxes = [
+  { id:1, name:'🏠 घरपट्टी', account:'GP-2024-1045', amount:1450, paid_amount:0, due_date:'31 मार्च 2025', year:'2024-25', color:'var(--saffron)' },
+  { id:2, name:'💧 पाणीपट्टी', account:'GP-W-0567', amount:600, paid_amount:0, due_date:'31 मार्च 2025', year:'2024-25', color:'#1976D2' },
+  { id:3, name:'💡 दिवाबत्ती कर', account:'GP-L-0312', amount:300, paid_amount:300, due_date:'भरले', year:'2024-25', color:'#9C27B0' },
+];
+
+async function loadKar() {
+  const div = document.getElementById('karList');
+  let taxes = demoTaxes;
+
+  if (!DEMO_MODE && currentUser?.id) {
+    try {
+      const { data } = await db.from('taxes').select('*').eq('citizen_id', currentUser.id);
+      if (data && data.length > 0) taxes = data;
+    } catch(e) {}
+  }
+
+  div.innerHTML = taxes.map(t => {
+    const isPaid = t.paid_amount >= t.amount;
+    const pending = t.amount - t.paid_amount;
+    return `<div class="tax-card" style="--color:${t.color || 'var(--saffron)'}">
+      <div class="tax-card-header">
+        <div>
+          <h4>${t.name}</h4>
+          <div class="khate">खाते: ${t.account} | ${t.year}</div>
+        </div>
+        <span class="tax-status ${isPaid ? 'status-paid' : 'status-due'}">${isPaid ? 'भरले ✅' : 'थकबाकी'}</span>
+      </div>
+      <div class="tax-amount">₹${t.amount} <span>/ वर्ष</span></div>
+      <div class="tax-details">
+        <div class="tax-detail"><div class="key">देय तारीख</div><div class="val" style="color:${isPaid ? 'var(--green)' : 'red'}">${t.due_date}</div></div>
+        <div class="tax-detail"><div class="key">शिल्लक</div><div class="val" style="color:${pending > 0 ? 'red' : 'var(--green)'}">₹${pending}</div></div>
+      </div>
+      ${isPaid
+        ? `<div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1;font-size:12px" onclick="showReceiptForTax(${t.id})">📄 पावती</button><button class="btn btn-whatsapp" style="flex:1;border:none;font-size:12px" onclick="shareWhatsApp('✅ ${t.name} भरला\\nरक्कम: ₹${t.amount}\\nखाते: ${t.account}\\n- ग्रुप ग्रामपंचायत आडाळी-फोंडीये')">📱 WhatsApp</button></div>`
+        : `<button class="btn btn-green" onclick="openPayment('${t.name}', ${pending}, ${t.id})">💳 आता भरा — ₹${pending}</button>`
+      }
+    </div>`;
+  }).join('');
+}
+
+function openPayment(type, amount, taxId) {
+  currentPaymentType = type;
+  currentPaymentAmount = amount;
+  currentPaymentTaxId = taxId;
+  document.getElementById('paymentTitle').textContent = type + ' — भरणा';
+  document.getElementById('payAmount').textContent = '₹' + amount;
+  openModal('paymentModal');
+}
+
+async function processPayment() {
+  const method = document.getElementById('payMethod').value;
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.textContent = 'प्रक्रिया सुरू...';
+
+  await new Promise(r => setTimeout(r, 1500)); // Simulate payment
+
+  const receiptNo = 'RCP-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+  const now = new Date();
+
+  const payData = {
+    receipt_no: receiptNo, citizen_id: currentUser?.id,
+    citizen_name: currentUser?.name, tax_type: currentPaymentType,
+    amount: currentPaymentAmount, method, status: 'paid',
+    tax_id: currentPaymentTaxId, created_at: now.toISOString()
+  };
+
+  if (!DEMO_MODE) {
+    try {
+      await db.from('payments').insert([payData]);
+      if (currentPaymentTaxId) {
+        await db.from('taxes').update({ paid_amount: currentPaymentAmount, status: 'paid' }).eq('id', currentPaymentTaxId);
+      }
+    } catch(e) {}
+  }
+
+  lastReceiptData = { ...payData, date: formatDate(now), citizen_name: currentUser?.name, citizen_phone: currentUser?.phone };
+
+  btn.disabled = false;
+  btn.textContent = '💳 पेमेंट करा';
+  closeModal('paymentModal');
+
+  document.getElementById('successContent').innerHTML = `
+    <div class="success-icon">🎉</div>
+    <h3>पेमेंट यशस्वी!</h3>
+    <p>${currentPaymentType} यशस्वीरित्या भरण्यात आला.</p>
+    <div class="ref-box">
+      <p style="font-size:11px;color:var(--gray-600);margin-bottom:4px">पावती क्रमांक</p>
+      <div class="ref-num">${receiptNo}</div>
+      <p style="font-size:11px;color:var(--gray-600);margin-top:4px">₹${currentPaymentAmount} भरले</p>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-outline" style="flex:1;font-size:12px" onclick="closeModal('successModal');openReceiptModal()">🧾 पावती पहा</button>
+      <button class="btn btn-whatsapp" style="flex:1;border:none;font-size:12px" onclick="shareWhatsApp('✅ कर भरणा यशस्वी!\\n${currentPaymentType}: ₹${currentPaymentAmount}\\nपावती: ${receiptNo}\\n- ग्रुप ग्रामपंचायत आडाळी-फोंडीये')">📱 WhatsApp</button>
+    </div>
+  `;
+  openModal('successModal');
+  showToast('पेमेंट यशस्वी! ' + receiptNo, 'success');
+  loadKar();
+}
+
+function openReceiptModal() {
+  if (!lastReceiptData) return;
+  const d = lastReceiptData;
+  document.getElementById('receiptContent').innerHTML = `
+    <div class="receipt-header">
+      <div style="font-size:28px">🏛️</div>
+      <h4>ग्रुप ग्रामपंचायत आडाळी-फोंडीये</h4>
+      <p style="font-size:11px;color:var(--gray-600)">ता. आंबेगाव • जि. पुणे</p>
+    </div>
+    <div class="receipt-row"><span class="key">पावती क्र.</span><span class="val">${d.receipt_no}</span></div>
+    <div class="receipt-row"><span class="key">दिनांक</span><span class="val">${d.date}</span></div>
+    <div class="receipt-row"><span class="key">नाव</span><span class="val">${d.citizen_name || '—'}</span></div>
+    <div class="receipt-row"><span class="key">कराचा प्रकार</span><span class="val">${d.tax_type}</span></div>
+    <div class="receipt-row"><span class="key">पेमेंट पद्धत</span><span class="val">${d.method?.split(' ')[0] || 'UPI'}</span></div>
+    <div class="receipt-total"><span>एकूण भरले</span><span>₹${d.amount}</span></div>
+  `;
+  const msg = `🧾 पावती\n${d.tax_type}: ₹${d.amount}\nपावती: ${d.receipt_no}\nदि. ${d.date}\n- ग्रुप ग्रामपंचायत आडाळी-फोंडीये`;
+  document.getElementById('receiptWhatsApp').onclick = () => shareWhatsApp(msg);
+  openModal('receiptModal');
+}
+
+function showReceiptForTax(id) {
+  lastReceiptData = { receipt_no: 'RCP-2025-0087', date: '15/01/2025', citizen_name: currentUser?.name, tax_type: demoTaxes.find(t=>t.id===id)?.name || 'कर', amount: 300, method: 'UPI' };
+  openReceiptModal();
+}
+
+function printReceipt() { window.print(); }
+
+// ============================================================
+// NOTICES
+// ============================================================
+const demoNotices = [
+  { id:1, title:'ग्रामसभा - विशेष बैठक', category:'सभा', content:'दिनांक 15 मार्च 2025 रोजी सकाळी 10:00 वाजता ग्रामपंचायत कार्यालय येथे विशेष ग्रामसभा. विषय: 2025-26 वार्षिक बजेट मंजुरी. सर्व ग्रामस्थांनी उपस्थित रहावे.', color:'var(--saffron)', created_at:'2025-03-04' },
+  { id:2, title:'पिण्याच्या पाण्याचा पुरवठा — वेळापत्रक बदल', category:'सामान्य', content:'टाकीच्या दुरुस्तीमुळे दि. 10-12 मार्च 2025 रोजी पाणीपुरवठा सकाळी 6-8 या वेळेतच होईल. नागरिकांनी साठा करावा.', color:'var(--green)', created_at:'2025-03-03' },
+  { id:3, title:'आयुष्मान भारत — मोफत आरोग्य शिबीर', category:'आरोग्य', content:'दि. 20 मार्च 2025 रोजी मोफत आरोग्य शिबीर. रक्त तपासणी, डोळे तपासणी मोफत.', color:'#9C27B0', created_at:'2025-03-02' },
+  { id:4, title:'रस्ते दुरुस्ती — E-Tender', category:'निविदा', content:'ग्रामपंचायत हद्दीतील रस्त्यांसाठी E-Tender दि. 20 मार्च 2025 पर्यंत. कार्यालयात संपर्क करा.', color:'var(--gold)', created_at:'2025-03-01' },
+  { id:5, title:'कर थकबाकी — अंतिम नोटीस', category:'सामान्य', content:'2023-24 व 2024-25 ची थकबाकी दि. 31 मार्च 2025 पूर्वी भरावी. अन्यथा दंड व कायदेशीर कारवाई होईल.', color:'#F44336', created_at:'2025-02-28' },
+];
+
+async function loadNotices() {
+  if (!DEMO_MODE) {
+    try {
+      const { data } = await db.from('notices').select('*').order('created_at', { ascending: false });
+      if (data && data.length > 0) allNotices = data;
+      else allNotices = demoNotices;
+    } catch(e) { allNotices = demoNotices; }
+  } else { allNotices = demoNotices; }
+  renderNotices(allNotices);
+}
+
+function renderNotices(notices) {
+  const div = document.getElementById('noticeList');
+  if (!notices.length) { div.innerHTML = '<div style="text-align:center;padding:30px;color:var(--gray-600)">कोणत्याही नोटीसा नाहीत</div>'; return; }
+  div.innerHTML = notices.map(n => `
+    <div class="notice-card" style="--color:${n.color || 'var(--navy)'}">
+      <div class="notice-header">
+        <h4>${n.title}</h4>
+        <span class="notice-tag">${n.category}</span>
+      </div>
+      <p>${n.content}</p>
+      <div class="notice-footer">
+        <span class="notice-date">📅 ${formatDate(n.created_at)}</span>
+        <button class="share-btn" onclick="shareWhatsApp('📢 ${n.title}\\n\\n${n.content}\\n\\n- ग्रुप ग्रामपंचायत आडाळी-फोंडीये')">📱 WhatsApp</button>
+      </div>
+    </div>`).join('');
+}
+
+function filterNotice(cat, btn) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  if (cat === 'all') renderNotices(allNotices);
+  else renderNotices(allNotices.filter(n => n.category === cat));
+}
+
+// ============================================================
+// TRACK APPLICATIONS
+// ============================================================
+async function trackApplication() {
+  const ref = document.getElementById('trackRef').value.trim();
+  if (!ref) { showToast('संदर्भ क्रमांक टाका', 'error'); return; }
+  showLoading();
+  let app = null;
+  if (!DEMO_MODE) {
+    try {
+      const { data } = await db.from('applications').select('*').eq('ref_no', ref).single();
+      app = data;
+    } catch(e) {}
+  }
+  hideLoading();
+
+  const div = document.getElementById('trackResult');
+  if (!app) {
+    // Demo
+    app = { ref_no: ref, type: 'रहिवास दाखला', citizen_name: currentUser?.name || 'नागरिक', status: 'processing', created_at: new Date().toISOString() };
+  }
+
+  const steps = [
+    { label: 'अर्ज सादर', sub: formatDate(app.created_at), done: true },
+    { label: 'शुल्क भरणा', sub: 'पूर्ण', done: true },
+    { label: 'कागदपत्र पडताळणी', sub: 'ग्रामसेवक तपासत आहे', current: app.status === 'processing' || !['approved','rejected'].includes(app.status), done: ['approved','rejected'].includes(app.status) },
+    { label: 'सरपंच मंजुरी', sub: app.status === 'approved' ? 'मंजूर' : 'प्रतीक्षेत', done: app.status === 'approved' },
+    { label: 'दाखला तयार', sub: app.status === 'approved' ? 'डाउनलोड उपलब्ध' : 'प्रतीक्षेत', done: app.status === 'approved' },
+  ];
+
+  div.innerHTML = `<div class="tracker">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div>
+        <h3 style="font-size:16px;font-weight:800;color:var(--navy)">${app.type}</h3>
+        <p style="font-size:11px;color:var(--gray-600)">${app.ref_no} | ${app.citizen_name}</p>
+      </div>
+      <span class="tax-status ${app.status === 'approved' ? 'status-paid' : app.status === 'rejected' ? 'status-due' : 'badge-pending'}" style="font-size:11px;padding:4px 10px">
+        ${app.status === 'approved' ? '✅ मंजूर' : app.status === 'rejected' ? '❌ नाकारले' : '⏳ प्रक्रियेत'}
+      </span>
+    </div>
+    <div class="track-steps">
+      ${steps.map(s => `<div class="track-step ${s.done ? 'done' : s.current ? 'current' : ''}">
+        <div class="step-dot">${s.done ? '✓' : s.current ? '⚡' : '○'}</div>
+        <div class="step-info"><h5>${s.label}</h5><p>${s.sub}</p></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+async function loadMyApplications() {
+  const div = document.getElementById('myApplications');
+  let apps = [];
+  if (!DEMO_MODE && currentUser?.id) {
+    try {
+      const { data } = await db.from('applications').select('*').eq('citizen_id', currentUser.id).order('created_at', { ascending: false });
+      apps = data || [];
+    } catch(e) {}
+  }
+  if (!apps.length) {
+    div.innerHTML = `<div class="form-card" style="text-align:center;color:var(--gray-600)">
+      <p style="font-size:13px">अजून कोणताही अर्ज नाही</p>
+      <button class="btn btn-primary" style="margin-top:12px;width:auto;padding:10px 20px" onclick="showSection('dakhale')">📄 दाखल्यासाठी अर्ज करा</button>
+    </div>`;
+    return;
+  }
+  div.innerHTML = apps.map(a => `
+    <div class="tax-card" style="--color:${a.status === 'approved' ? 'var(--green)' : a.status === 'rejected' ? '#F44336' : 'var(--gold)'}">
+      <div class="tax-card-header">
+        <div><h4>${a.type}</h4><div class="khate">${a.ref_no} | ${formatDate(a.created_at)}</div></div>
+        <span class="tax-status ${a.status === 'approved' ? 'status-paid' : a.status === 'rejected' ? 'status-due' : 'badge-pending'}">${a.status === 'approved' ? '✅ मंजूर' : a.status === 'rejected' ? '❌ नाकारले' : '⏳ प्रक्रियेत'}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+function loadProfile() {
+  if (!currentUser) return;
+  document.getElementById('profileName').textContent = currentUser.name || '—';
+  document.getElementById('profilePhone').textContent = '📱 ' + (currentUser.phone || '—');
+  document.getElementById('profileGhar').textContent = currentUser.ghar_no || '—';
+  document.getElementById('profileAadhar').textContent = currentUser.aadhar ? '****' + currentUser.aadhar.slice(-4) : '—';
+  document.getElementById('profileDate').textContent = formatDate(currentUser.created_at);
+  document.getElementById('profileHistory').innerHTML = `
+    <div class="card-grid">
+      <div class="service-card" style="--color:var(--saffron)" onclick="showSection('track')"><div class="icon">📄</div><div class="title">माझे अर्ज</div></div>
+      <div class="service-card" style="--color:var(--green)" onclick="showSection('kar')"><div class="icon">💰</div><div class="title">पेमेंट इतिहास</div></div>
+    </div>`;
+}
+
+function saveSettings() { showToast('सेटिंग्ज जतन झाल्या!', 'success'); }
+
+// ============================================================
+// ADMIN PANEL
+// ============================================================
+async function loadAdminApplications() {
+  document.getElementById('adminContent').innerHTML = '<div style="text-align:center;padding:20px">लोड होत आहे...</div>';
+  let apps = [];
+  if (!DEMO_MODE) {
+    try {
+      const { data } = await db.from('applications').select('*').order('created_at', { ascending: false }).limit(50);
+      apps = data || [];
+    } catch(e) {}
+  }
+  if (!apps.length) {
+    apps = [
+      { id:1, ref_no:'GP-2025-11234', type:'रहिवास दाखला', citizen_name:'रामचंद्र पाटील', phone:'9876543210', status:'pending', created_at:new Date().toISOString() },
+      { id:2, ref_no:'GP-2025-11235', type:'जन्म दाखला', citizen_name:'सुनिता मोरे', phone:'9876543211', status:'pending', created_at:new Date().toISOString() },
+      { id:3, ref_no:'GP-2025-11230', type:'उत्पन्नाचा दाखला', citizen_name:'विजय शिंदे', phone:'9876543212', status:'approved', created_at:new Date().toISOString() },
+    ];
+  }
+  const pending = apps.filter(a => a.status === 'pending').length;
+  document.getElementById('pendingCount').textContent = pending + ' प्रलंबित';
+
+  document.getElementById('adminContent').innerHTML = `
+    <div class="admin-card">
+      <h4>📋 अर्ज व्यवस्थापन (${apps.length} एकूण)</h4>
+      <ul class="app-list">
+        ${apps.map(a => `<li>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <strong style="font-size:13px">${a.type}</strong>
+              <span class="app-badge ${a.status === 'approved' ? 'badge-approved' : a.status === 'rejected' ? 'badge-rejected' : 'badge-pending'}">${a.status === 'approved' ? '✅ मंजूर' : a.status === 'rejected' ? '❌ नाकारले' : '⏳ प्रलंबित'}</span>
+            </div>
+            <div style="font-size:11px;color:var(--gray-600)">${a.citizen_name} • ${a.phone} • ${a.ref_no}</div>
+            <div style="font-size:11px;color:var(--gray-600)">${formatDate(a.created_at)}</div>
+            ${a.status === 'pending' ? `<div class="app-actions">
+              <button class="btn-approve" onclick="updateApplicationStatus(${a.id},'approved')">✅ मंजूर करा</button>
+              <button class="btn-reject" onclick="updateApplicationStatus(${a.id},'rejected')">❌ नाकारा</button>
+            </div>` : ''}
+          </div>
+        </li>`).join('')}
+      </ul>
+    </div>`;
+}
+
+async function updateApplicationStatus(id, status) {
+  if (!DEMO_MODE) {
+    try {
+      await db.from('applications').update({ status }).eq('id', id);
+    } catch(e) {}
+  }
+  showToast(status === 'approved' ? '✅ अर्ज मंजूर झाला' : '❌ अर्ज नाकारला', status === 'approved' ? 'success' : 'error');
+  loadAdminApplications();
+}
+
+async function loadAdminPayments() {
+  document.getElementById('adminContent').innerHTML = `<div class="admin-card"><h4>💰 पेमेंट रेकॉर्ड</h4><p style="color:var(--gray-600);font-size:13px">Supabase configure झाल्यावर येथे सर्व पेमेंट दिसतील.</p></div>`;
+}
+
+async function loadAdminCitizens() {
+  document.getElementById('adminContent').innerHTML = `<div class="admin-card"><h4>👥 नोंदणीकृत नागरिक</h4><p style="color:var(--gray-600);font-size:13px">Supabase configure झाल्यावर येथे सर्व नागरिक दिसतील.</p></div>`;
+}
+
+function showAdminNoticeForm() { openModal('adminNoticeModal'); }
+
+async function publishNotice() {
+  const title = document.getElementById('noticeTitle').value.trim();
+  const category = document.getElementById('noticeCategory').value;
+  const content = document.getElementById('noticeContent').value.trim();
+  const whatsapp = document.getElementById('noticeWhatsapp').value;
+  if (!title || !content) { showToast('शीर्षक व माहिती आवश्यक', 'error'); return; }
+
+  const notice = { title, category, content, color: 'var(--navy)', created_at: new Date().toISOString() };
+
+  if (!DEMO_MODE) {
+    try { await db.from('notices').insert([notice]); } catch(e) {}
+  }
+
+  closeModal('adminNoticeModal');
+  showToast('✅ नोटीस प्रकाशित झाली!', 'success');
+
+  if (whatsapp === 'yes') {
+    shareWhatsApp(`📢 ${title}\n\n${content}\n\n- ग्रुप ग्रामपंचायत आडाळी-फोंडीये`);
+  }
+
+  document.getElementById('noticeTitle').value = '';
+  document.getElementById('noticeContent').value = '';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  if (DEMO_MODE) {
+    console.log('⚠️ Demo Mode: Supabase configure केलेला नाही');
+  }
+});
+</script>
+</body>
+</html>
