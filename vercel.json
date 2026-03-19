@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/Advance.master_file.html" },
-    { "source": "/(.*)", "destination": "/Advance.master_file.html" }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
